@@ -26,19 +26,22 @@ class DatabaseHelper {
   }
 
   Future _createDB(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE reminders (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        note TEXT NOT NULL,
-        dateTime INTEGER NOT NULL,
-        textColor INTEGER NOT NULL,
-        backgroundColor INTEGER NOT NULL,
-        sticker TEXT NOT NULL,
-        isCompleted INTEGER NOT NULL
-      )
-    ''');
-  }
+  await db.execute('''
+    CREATE TABLE reminders (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      note TEXT NOT NULL,
+      dateTime INTEGER NOT NULL,
+      textColor INTEGER NOT NULL,
+      backgroundColor INTEGER NOT NULL,
+      sticker TEXT NOT NULL,
+      isCompleted INTEGER NOT NULL,
+      reminderType TEXT NOT NULL,  
+      songPath TEXT  
+    )
+  ''');
+}
+
 
   Future<String> insertReminder(ReminderModel reminder) async {
     final db = await database;

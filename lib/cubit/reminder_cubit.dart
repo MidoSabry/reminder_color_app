@@ -22,28 +22,74 @@ class ReminderCubit extends Cubit<ReminderState> {
     }
   }
 
-  Future<void> addReminder(ReminderModel reminder) async {
+  // Future<void> addReminder(ReminderModel reminder) async {
+  //   try {
+  //     await _db.insertReminder(reminder);
+  //     await _notifications.scheduleReminder(reminder);
+  //     await loadReminders();
+  //   } catch (e) {
+  //     emit(ReminderError(e.toString()));
+  //   }
+  // }
+
+   Future<void> addReminder(ReminderModel reminder) async {
     try {
       await _db.insertReminder(reminder);
-      await _notifications.scheduleReminder(reminder);
+
+      // Handle Notification or Alarm
+      if (reminder.reminderType == 'alarm' && reminder.songPath != null) {
+        // Call a custom method for scheduling an alarm with music
+        await _notifications.scheduleAlarmReminder(reminder);
+      } else {
+        // Handle the regular notification
+        await _notifications.scheduleReminder(reminder);
+      }
+
+      // Reload reminders
       await loadReminders();
     } catch (e) {
       emit(ReminderError(e.toString()));
     }
   }
 
+  // Future<void> updateReminder(ReminderModel reminder) async {
+  //   try {
+  //     await _db.updateReminder(reminder);
+  //     await _notifications.cancelReminder(reminder.id);
+  //     if (!reminder.isCompleted) {
+  //       await _notifications.scheduleReminder(reminder);
+  //     }
+  //     await loadReminders();
+  //   } catch (e) {
+  //     emit(ReminderError(e.toString()));
+  //   }
+  // }
+
+
+  // Method to update an existing reminder
   Future<void> updateReminder(ReminderModel reminder) async {
     try {
       await _db.updateReminder(reminder);
+
+      // Cancel the old reminder
       await _notifications.cancelReminder(reminder.id);
+
+      // If the reminder is not completed, schedule it again
       if (!reminder.isCompleted) {
-        await _notifications.scheduleReminder(reminder);
+        if (reminder.reminderType == 'alarm' && reminder.songPath != null) {
+          await _notifications.scheduleAlarmReminder(reminder);
+        } else {
+          await _notifications.scheduleReminder(reminder);
+        }
       }
+
+      // Reload reminders
       await loadReminders();
     } catch (e) {
       emit(ReminderError(e.toString()));
     }
   }
+
 
   Future<void> deleteReminder(String id) async {
     try {
@@ -59,4 +105,7 @@ class ReminderCubit extends Cubit<ReminderState> {
     final updated = reminder.copyWith(isCompleted: !reminder.isCompleted);
     await updateReminder(updated);
   }
+
+
+  
 }

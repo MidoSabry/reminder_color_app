@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
@@ -21,6 +22,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   int _selectedTextColor = 0xFF1A1A1A;
   int _selectedBgColor = 0xFFFFE082;
   String _selectedSticker = '⭐';
+
+  //  Adding a variable to store the type of reminder
+  String _reminderType = 'notification';  // Default to notification
+  String? _selectedSong;  // Store the selected song path
 
   final List<int> _textColors = [
     0xFF1A1A1A, 0xFFFFFFFF, 0xFFE91E63, 0xFF9C27B0,
@@ -108,6 +113,42 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         setState(() => _selectedBgColor = color);
                       }),
                       const SizedBox(height: 32),
+                      // Radio Buttons to choose between Notification or Alarm
+                      const Text(
+                        'Reminder Type',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Row(
+                        children: [
+                          Radio<String>(
+                            value: 'notification',
+                            groupValue: _reminderType,
+                            onChanged: (value) {
+                              setState(() {
+                                _reminderType = value!;
+                                _selectedSong = null;  // Reset song selection if switching to Notification
+                              });
+                            },
+                          ),
+                          const Text('Notification'),
+                          Radio<String>(
+                            value: 'alarm',
+                            groupValue: _reminderType,
+                            onChanged: (value) {
+                              setState(() {
+                                _reminderType = value!;
+                              });
+                            },
+                          ),
+                          const Text('Alarm'),
+                        ],
+                      ),
+
+                      // Show Song picker only if the reminder is Alarm
+                      // if (_reminderType == 'alarm') _buildSongPicker(),
+
+                     
+                      const SizedBox(height: 24),
                       _buildSaveButton(context),
                     ],
                   ),
@@ -425,31 +466,66 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   }
 
   void _saveReminder() {
-    if (_titleController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a title')),
-      );
-      return;
-    }
-
-    final reminder = ReminderModel(
-      id: widget.reminder?.id ?? const Uuid().v4(),
-      title: _titleController.text,
-      note: _noteController.text,
-      dateTime: _selectedDate,
-      textColor: _selectedTextColor,
-      backgroundColor: _selectedBgColor,
-      sticker: _selectedSticker,
-      isCompleted: widget.reminder?.isCompleted ?? false,
+  if (_titleController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please enter a title')),
     );
+    return;
+  }
 
-    if (widget.reminder == null) {
-      context.read<ReminderCubit>().addReminder(reminder);
-    } else {
-      context.read<ReminderCubit>().updateReminder(reminder);
+  final reminder = ReminderModel(
+    id: widget.reminder?.id ?? const Uuid().v4(),
+    title: _titleController.text,
+    note: _noteController.text,
+    dateTime: _selectedDate,
+    textColor: _selectedTextColor,
+    backgroundColor: _selectedBgColor,
+    sticker: _selectedSticker,
+    isCompleted: widget.reminder?.isCompleted ?? false,
+    reminderType: _reminderType,  // Keep reminderType as 'alarm' or 'notification'
+    songPath: null,  // No need to save songPath anymore
+  );
+
+  if (widget.reminder == null) {
+    context.read<ReminderCubit>().addReminder(reminder);
+  } else {
+    context.read<ReminderCubit>().updateReminder(reminder);
+  }
+
+  Navigator.pop(context);
+}
+
+
+
+
+   // Build the song picker when alarm is selected
+  Widget _buildSongPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Choose Alarm Song',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton(
+          onPressed: _pickSong,
+          child: const Text('Pick Song'),
+        ),
+        if (_selectedSong != null)
+          Text('Selected song: ${_selectedSong?.split('/').last ?? 'No song selected'}'),
+      ],
+    );
+  }
+
+  // Pick song file using FilePicker
+  Future<void> _pickSong() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['mp3', 'wav']);
+    if (result != null && result.files.isNotEmpty) {
+      setState(() {
+        _selectedSong = result.files.single.path;
+      });
     }
-
-    Navigator.pop(context);
   }
 
   @override

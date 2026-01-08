@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:reminder_color_app/screens/alarm_screen.dart';
 import 'package:reminder_color_app/screens/home_screen.dart';
 import 'package:reminder_color_app/services/notification_service.dart';
-
 import 'cubit/reminder_cubit.dart';
 
+// هنا الـ global key علشان نقدر نفتح الـ AlarmScreen من أي مكان
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.instance.initialize();
   await NotificationService.instance.requestPermissions();
+  
+  
   runApp(const MyApp());
 }
 
@@ -21,6 +25,7 @@ class MyApp extends StatelessWidget {
     return BlocProvider(
       create: (context) => ReminderCubit()..loadReminders(),
       child: MaterialApp(
+        navigatorKey: navigatorKey, // مهم جداً! علشان نقدر نفتح screens
         title: 'Colorful Reminders',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(

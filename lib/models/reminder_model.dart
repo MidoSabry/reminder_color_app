@@ -9,6 +9,9 @@ class ReminderModel extends Equatable {
   final int backgroundColor;
   final String sticker;
   final bool isCompleted;
+  final String reminderType; // New property: 'notification' or 'alarm'
+  final String? songPath;   // New property for song path, null if not set
+
 
   const ReminderModel({
     required this.id,
@@ -19,6 +22,8 @@ class ReminderModel extends Equatable {
     required this.backgroundColor,
     required this.sticker,
     this.isCompleted = false,
+    required this.reminderType, // Initialize this
+    this.songPath,  // Optional
   });
 
   Map<String, dynamic> toMap() {
@@ -31,6 +36,8 @@ class ReminderModel extends Equatable {
       'backgroundColor': backgroundColor,
       'sticker': sticker,
       'isCompleted': isCompleted ? 1 : 0,
+      'reminderType': reminderType,  // Add reminderType
+      'songPath': songPath,          // Add songPath
     };
   }
 
@@ -44,6 +51,8 @@ class ReminderModel extends Equatable {
       backgroundColor: map['backgroundColor'],
       sticker: map['sticker'],
       isCompleted: map['isCompleted'] == 1,
+      reminderType: map['reminderType'],  // Initialize reminderType
+      songPath: map['songPath'],          // Initialize songPath
     );
   }
 
@@ -66,9 +75,11 @@ class ReminderModel extends Equatable {
       backgroundColor: backgroundColor ?? this.backgroundColor,
       sticker: sticker ?? this.sticker,
       isCompleted: isCompleted ?? this.isCompleted,
+      reminderType: reminderType ?? this.reminderType,  // Copy reminderType
+      songPath: songPath ?? this.songPath,  // Copy songPath
     );
   }
 
   @override
-  List<Object?> get props => [id, title, note, dateTime, textColor, backgroundColor, sticker, isCompleted];
+  List<Object?> get props => [id, title, note, dateTime, textColor, backgroundColor, sticker, isCompleted, reminderType, songPath];
 }
