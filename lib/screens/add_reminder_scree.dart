@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:uuid/uuid.dart';
 import '../cubit/reminder_cubit.dart';
 import '../models/reminder_model.dart';
@@ -41,6 +42,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     '🌟', '🎁', '🌈', '🦋', '🌸', '🎭', '🎮', '📱',
   ];
 
+  bool _isSticker = false;
+
   @override
   void initState() {
     super.initState();
@@ -51,6 +54,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       _selectedTextColor = widget.reminder!.textColor;
       _selectedBgColor = widget.reminder!.backgroundColor;
       _selectedSticker = widget.reminder!.sticker;
+      _isSticker = widget.reminder?.isSticker ?? false;
     }
   }
 
@@ -107,6 +111,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       _buildColorPicker('Background Color', _bgColors, _selectedBgColor, (color) {
                         setState(() => _selectedBgColor = color);
                       }),
+                      const SizedBox(height: 24),
+                      _buildWallpaperCheckbox(),
                       const SizedBox(height: 32),
                       _buildSaveButton(context),
                     ],
@@ -395,6 +401,77 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     );
   }
 
+
+  // ← Widget جديد للـ Wallpaper Checkbox
+  Widget _buildWallpaperCheckbox() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.purple.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.wallpaper,
+              color: Colors.purple.shade700,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Add Sticker to Wallpaper',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Show this reminder as a widget on home screen',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Transform.scale(
+            scale: 1.2,
+            child: Checkbox(
+              value: _isSticker,
+              onChanged: (value) {
+                setState(() => _isSticker = value ?? false);
+              },
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              activeColor: Colors.deepPurple,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSaveButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
@@ -441,6 +518,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       backgroundColor: _selectedBgColor,
       sticker: _selectedSticker,
       isCompleted: widget.reminder?.isCompleted ?? false,
+      isSticker: _isSticker, 
     );
 
     if (widget.reminder == null) {
@@ -449,8 +527,42 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       context.read<ReminderCubit>().updateReminder(reminder);
     }
 
+    if (_isSticker) {
+  if (_isSticker) {
+  _sendDataToNative(reminder);
+}
+}
+
     Navigator.pop(context);
   }
+
+  void _sendDataToNative(ReminderModel reminder) async {
+  try {
+    // 1. حفظ البيانات في "مخزن مؤقت" يراه الأندرويد
+    await HomeWidget.saveWidgetData<String>('title', reminder.title);
+    await HomeWidget.saveWidgetData<String>('note', reminder.note);
+    await HomeWidget.saveWidgetData<int>('color', reminder.backgroundColor);
+    await HomeWidget.saveWidgetData<String>('date', "${reminder.dateTime.day}/${reminder.dateTime.month} ${reminder.dateTime.hour}:${reminder.dateTime.minute}");
+
+    // 2. أمر تحديث الويدجت (الاسم ده لازم يطابق اللي في الأندرويد)
+    await HomeWidget.updateWidget(
+      name: 'ReminderWidgetProvider', 
+      androidName: 'ReminderWidgetProvider',
+    );
+  } catch (e) {
+    debugPrint("Error updating widget: $e");
+  }
+}
+
+//   void _updateHomeWidget({required String title, required String note, required int color, required String date}) async {
+//   await HomeWidget.saveWidgetData<String>('title', title);
+//   await HomeWidget.saveWidgetData<String>('note', note);
+//   await HomeWidget.saveWidgetData<int>('color', color);
+//   await HomeWidget.saveWidgetData<String>('date', date);
+  
+//   // 'ReminderWidgetProvider' هو اسم الكلاس اللي هنبنيها في أندرويد
+//   await HomeWidget.updateWidget(name: 'ReminderWidgetProvider');
+// }
 
   @override
   void dispose() {

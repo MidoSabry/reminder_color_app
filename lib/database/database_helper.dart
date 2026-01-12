@@ -35,7 +35,8 @@ class DatabaseHelper {
         textColor INTEGER NOT NULL,
         backgroundColor INTEGER NOT NULL,
         sticker TEXT NOT NULL,
-        isCompleted INTEGER NOT NULL
+        isCompleted INTEGER NOT NULL,
+        isSticker INTEGER NOT NULL
       )
     ''');
   }
