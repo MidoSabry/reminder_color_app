@@ -6,7 +6,9 @@ import android.content.Context
 import android.graphics.Color
 import android.widget.RemoteViews
 import android.util.Log
+import android.content.Intent
 import es.antonborri.home_widget.HomeWidgetPlugin
+import org.json.JSONArray
 
 class ReminderWidgetProvider : AppWidgetProvider() {
 
@@ -17,59 +19,100 @@ class ReminderWidgetProvider : AppWidgetProvider() {
     ) {
         Log.d("ReminderWidget", "🔷 onUpdate called with ${appWidgetIds.size} widgets")
         
-        appWidgetIds.forEach { widgetId ->
-            val views = RemoteViews(context.packageName, R.layout.reminder_widget_layout)
+        // Get all pinned reminders
+        val widgetData = HomeWidgetPlugin.getData(context)
+        val remindersJson = widgetData.getString("reminders_list", "[]") ?: "[]"
+        
+        Log.d("ReminderWidget", "📝 JSON: $remindersJson")
+        
+        try {
+            val remindersArray = JSONArray(remindersJson)
+            Log.d("ReminderWidget", "📌 Found ${remindersArray.length()} pinned reminders")
             
-            // Get data from SharedPreferences
-            val widgetData = HomeWidgetPlugin.getData(context)
-            val title = widgetData.getString("reminder_title", "No Reminder")
-            val note = widgetData.getString("reminder_note", "Tap to add a reminder")
-            val sticker = widgetData.getString("reminder_sticker", "⭐")
-            val bgColorString = widgetData.getString("reminder_bg_color", "4294951554")
-            val textColorString = widgetData.getString("reminder_text_color", "4279834394")
-            
-            Log.d("ReminderWidget", "📝 Widget Data:")
-            Log.d("ReminderWidget", "  Title: $title")
-            Log.d("ReminderWidget", "  Note: $note")
-            Log.d("ReminderWidget", "  Sticker: $sticker")
-            
-            // Convert color strings to integers
-            val bgColor = try {
-                bgColorString?.toLong()?.toInt() ?: Color.parseColor("#FFE082")
-            } catch (e: Exception) {
-                Log.e("ReminderWidget", "Error parsing bgColor: $e")
-                Color.parseColor("#FFE082")
+            // For each widget, assign a different reminder
+            appWidgetIds.forEachIndexed { index, widgetId ->
+                val views = RemoteViews(context.packageName, R.layout.reminder_widget_layout)
+                
+                if (index < remindersArray.length()) {
+                    // Show the reminder at this index
+                    val reminder = remindersArray.getJSONObject(index)
+                    updateViewsWithReminder(views, reminder, context, widgetId)
+                } else {
+                    // No more reminders, show "Add more reminders"
+                    updateViewsWithDefault(views)
+                }
+                
+                appWidgetManager.updateAppWidget(widgetId, views)
+                Log.d("ReminderWidget", "✅ Widget $widgetId updated with reminder at index $index")
             }
             
-            val textColor = try {
-                textColorString?.toLong()?.toInt() ?: Color.parseColor("#1A1A1A")
-            } catch (e: Exception) {
-                Log.e("ReminderWidget", "Error parsing textColor: $e")
-                Color.parseColor("#1A1A1A")
+        } catch (e: Exception) {
+            Log.e("ReminderWidget", "Error parsing JSON: $e")
+            appWidgetIds.forEach { widgetId ->
+                val views = RemoteViews(context.packageName, R.layout.reminder_widget_layout)
+                updateViewsWithDefault(views)
+                appWidgetManager.updateAppWidget(widgetId, views)
             }
-
-            // Update views
-            views.setTextViewText(R.id.title_text, title)
-            views.setTextViewText(R.id.note_text, note)
-            views.setTextViewText(R.id.sticker_text, sticker)
-            views.setTextColor(R.id.title_text, textColor)
-            views.setTextColor(R.id.note_text, textColor)
-
-            // Set background color
-            views.setInt(R.id.widget_container, "setBackgroundColor", bgColor)
-
-            appWidgetManager.updateAppWidget(widgetId, views)
-            Log.d("ReminderWidget", "✅ Widget $widgetId updated successfully")
         }
+    }
+    
+    private fun updateViewsWithDefault(views: RemoteViews) {
+        views.setTextViewText(R.id.title_text, "No More Reminders")
+        views.setTextViewText(R.id.note_text, "Add and pin a reminder to see it here!")
+        views.setTextViewText(R.id.sticker_text, "📌")
+        views.setTextColor(R.id.title_text, Color.parseColor("#1A1A1A"))
+        views.setTextColor(R.id.note_text, Color.parseColor("#666666"))
+        views.setInt(R.id.widget_container, "setBackgroundColor", Color.parseColor("#E0E0E0"))
+    }
+    
+    private fun updateViewsWithReminder(
+        views: RemoteViews,
+        reminder: org.json.JSONObject,
+        context: Context,
+        widgetId: Int
+    ) {
+        val title = reminder.getString("title")
+        val note = reminder.getString("note")
+        val sticker = reminder.getString("sticker")
+        val bgColorString = reminder.getString("backgroundColor")
+        val textColorString = reminder.getString("textColor")
+        
+        Log.d("ReminderWidget", "  Widget $widgetId -> $sticker $title")
+        
+        // Parse colors
+        val bgColor = try {
+            bgColorString.toLong().toInt()
+        } catch (e: Exception) {
+            Color.parseColor("#FFE082")
+        }
+        
+        val textColor = try {
+            textColorString.toLong().toInt()
+        } catch (e: Exception) {
+            Color.parseColor("#1A1A1A")
+        }
+        
+        // Update views
+        views.setTextViewText(R.id.title_text, title)
+        views.setTextViewText(R.id.note_text, note)
+        views.setTextViewText(R.id.sticker_text, sticker)
+        views.setTextColor(R.id.title_text, textColor)
+        views.setTextColor(R.id.note_text, textColor)
+        views.setInt(R.id.widget_container, "setBackgroundColor", bgColor)
     }
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        Log.d("ReminderWidget", "🟢 Widget enabled")
+        Log.d("ReminderWidget", "🟢 First widget added")
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        Log.d("ReminderWidget", "🔴 Widget disabled")
+        Log.d("ReminderWidget", "🔴 Last widget removed")
+    }
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        super.onDeleted(context, appWidgetIds)
+        Log.d("ReminderWidget", "🗑️ Widgets deleted: ${appWidgetIds.joinToString()}")
     }
 }
