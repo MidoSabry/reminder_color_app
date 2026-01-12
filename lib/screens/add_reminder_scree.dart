@@ -17,29 +17,73 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   final _titleController = TextEditingController();
   final _noteController = TextEditingController();
   DateTime _selectedDate = DateTime.now().add(const Duration(hours: 1));
-  
+
   int _selectedTextColor = 0xFF1A1A1A;
   int _selectedBgColor = 0xFFFFE082;
   String _selectedSticker = '⭐';
 
   final List<int> _textColors = [
-    0xFF1A1A1A, 0xFFFFFFFF, 0xFFE91E63, 0xFF9C27B0,
-    0xFF3F51B5, 0xFF2196F3, 0xFF00BCD4, 0xFF4CAF50,
-    0xFFFFEB3B, 0xFFFF9800, 0xFFFF5722, 0xFF795548,
+    0xFF1A1A1A,
+    0xFFFFFFFF,
+    0xFFE91E63,
+    0xFF9C27B0,
+    0xFF3F51B5,
+    0xFF2196F3,
+    0xFF00BCD4,
+    0xFF4CAF50,
+    0xFFFFEB3B,
+    0xFFFF9800,
+    0xFFFF5722,
+    0xFF795548,
   ];
 
   final List<int> _bgColors = [
-    0xFFFFE082, 0xFFFFCDD2, 0xFFF8BBD0, 0xFFE1BEE7,
-    0xFFD1C4E9, 0xFFC5CAE9, 0xFFBBDEFB, 0xFFB3E5FC,
-    0xFFB2DFDB, 0xFFC8E6C9, 0xFFF0F4C3, 0xFFFFE0B2,
-    0xFFFFCCBC, 0xFFD7CCC8, 0xFFCFD8DC, 0xFFFFF9C4,
+    0xFFFFE082,
+    0xFFFFCDD2,
+    0xFFF8BBD0,
+    0xFFE1BEE7,
+    0xFFD1C4E9,
+    0xFFC5CAE9,
+    0xFFBBDEFB,
+    0xFFB3E5FC,
+    0xFFB2DFDB,
+    0xFFC8E6C9,
+    0xFFF0F4C3,
+    0xFFFFE0B2,
+    0xFFFFCCBC,
+    0xFFD7CCC8,
+    0xFFCFD8DC,
+    0xFFFFF9C4,
   ];
 
   final List<String> _stickers = [
-    '⭐', '🎯', '💡', '🔥', '💪', '🎉', '🎨', '📚',
-    '💼', '🏃', '🎵', '☕', '🍕', '✈️', '🏠', '❤️',
-    '🌟', '🎁', '🌈', '🦋', '🌸', '🎭', '🎮', '📱',
+    '⭐',
+    '🎯',
+    '💡',
+    '🔥',
+    '💪',
+    '🎉',
+    '🎨',
+    '📚',
+    '💼',
+    '🏃',
+    '🎵',
+    '☕',
+    '🍕',
+    '✈️',
+    '🏠',
+    '❤️',
+    '🌟',
+    '🎁',
+    '🌈',
+    '🦋',
+    '🌸',
+    '🎭',
+    '🎮',
+    '📱',
   ];
+
+  bool _isSticker = false;
 
   @override
   void initState() {
@@ -51,6 +95,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       _selectedTextColor = widget.reminder!.textColor;
       _selectedBgColor = widget.reminder!.backgroundColor;
       _selectedSticker = widget.reminder!.sticker;
+      _isSticker = widget.reminder!.isPinnedToWidget;
     }
   }
 
@@ -100,13 +145,25 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       const SizedBox(height: 24),
                       _buildDateTimePicker(),
                       const SizedBox(height: 24),
-                      _buildColorPicker('Text Color', _textColors, _selectedTextColor, (color) {
-                        setState(() => _selectedTextColor = color);
-                      }),
+                      _buildColorPicker(
+                        'Text Color',
+                        _textColors,
+                        _selectedTextColor,
+                        (color) {
+                          setState(() => _selectedTextColor = color);
+                        },
+                      ),
                       const SizedBox(height: 24),
-                      _buildColorPicker('Background Color', _bgColors, _selectedBgColor, (color) {
-                        setState(() => _selectedBgColor = color);
-                      }),
+                      _buildColorPicker(
+                        'Background Color',
+                        _bgColors,
+                        _selectedBgColor,
+                        (color) {
+                          setState(() => _selectedBgColor = color);
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      _buildWallpaperCheckbox(),
                       const SizedBox(height: 32),
                       _buildSaveButton(context),
                     ],
@@ -132,10 +189,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           const SizedBox(width: 8),
           Text(
             widget.reminder == null ? 'New Reminder' : 'Edit Reminder',
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -166,7 +220,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  _titleController.text.isEmpty ? 'Preview Title' : _titleController.text,
+                  _titleController.text.isEmpty
+                      ? 'Preview Title'
+                      : _titleController.text,
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -178,7 +234,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            _noteController.text.isEmpty ? 'Your note will appear here...' : _noteController.text,
+            _noteController.text.isEmpty
+                ? 'Your note will appear here...'
+                : _noteController.text,
             style: TextStyle(
               fontSize: 16,
               color: Color(_selectedTextColor).withOpacity(0.8),
@@ -222,9 +280,14 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 onTap: () => setState(() => _selectedSticker = sticker),
                 child: Container(
                   width: 50,
-                  margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: isSelected ? Colors.purple.shade100 : Colors.transparent,
+                    color: isSelected
+                        ? Colors.purple.shade100
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected ? Colors.purple : Colors.transparent,
@@ -338,7 +401,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     }
   }
 
-  Widget _buildColorPicker(String label, List<int> colors, int selected, Function(int) onSelect) {
+  Widget _buildColorPicker(
+    String label,
+    List<int> colors,
+    int selected,
+    Function(int) onSelect,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -365,7 +433,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 child: Container(
                   width: 50,
                   height: 50,
-                  margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: Color(color),
                     shape: BoxShape.circle,
@@ -392,6 +463,69 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildWallpaperCheckbox() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.purple.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.wallpaper,
+              color: Colors.purple.shade700,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Add Sticker to Wallpaper',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Show this reminder as a widget on home screen',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          Transform.scale(
+            scale: 1.2,
+            child: Checkbox(
+              value: _isSticker,
+              onChanged: (value) {
+                setState(() => _isSticker = value ?? false);
+              },
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              activeColor: Colors.deepPurple,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -426,9 +560,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
   void _saveReminder() {
     if (_titleController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a title')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a title')));
       return;
     }
 
@@ -441,6 +575,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       backgroundColor: _selectedBgColor,
       sticker: _selectedSticker,
       isCompleted: widget.reminder?.isCompleted ?? false,
+      isPinnedToWidget: _isSticker,
     );
 
     if (widget.reminder == null) {

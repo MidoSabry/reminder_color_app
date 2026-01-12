@@ -7,6 +7,7 @@ import 'package:reminder_color_app/services/reminder_service.dart';
 
 import 'cubit/reminder_cubit.dart';
 import 'services/notification_service.dart';
+import 'services/widget_service.dart';
 
 
 
@@ -23,6 +24,7 @@ void main() async {
    // Initialize notifications
   await NotificationService.instance.initialize();
   await NotificationService.instance.requestPermissions();
+  await WidgetService.instance.initialize(); // ← أضف ده
 
    // Check if app launched from notification
   final launchDetails =
