@@ -3,116 +3,102 @@ package com.example.reminder_color_app
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.graphics.Color
-import android.widget.RemoteViews
-import android.util.Log
 import android.content.Intent
+import android.widget.RemoteViews
+import android.graphics.Color
 import es.antonborri.home_widget.HomeWidgetPlugin
-import org.json.JSONArray
+import org.json.JSONObject
+
 
 class ReminderWidgetProvider : AppWidgetProvider() {
 
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+
+        if (intent.hasExtra("reminder_id")) {
+            val widgetId = intent.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID
+            )
+            val reminderId = intent.getStringExtra("reminder_id") ?: return
+
+            val prefs = HomeWidgetPlugin.getData(context)
+            prefs.edit()
+                .putString("widget_$widgetId", reminderId)
+                .apply()
+        }
+    }
+
     override fun onUpdate(
         context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
+        manager: AppWidgetManager,
+        widgetIds: IntArray
     ) {
-        Log.d("ReminderWidget", "🔷 onUpdate called with ${appWidgetIds.size} widgets")
-        
-        // Get all pinned reminders
-        val widgetData = HomeWidgetPlugin.getData(context)
-        val remindersJson = widgetData.getString("reminders_list", "[]") ?: "[]"
-        
-        Log.d("ReminderWidget", "📝 JSON: $remindersJson")
-        
-        try {
-            val remindersArray = JSONArray(remindersJson)
-            Log.d("ReminderWidget", "📌 Found ${remindersArray.length()} pinned reminders")
-            
-            // For each widget, assign a different reminder
-            appWidgetIds.forEachIndexed { index, widgetId ->
-                val views = RemoteViews(context.packageName, R.layout.reminder_widget_layout)
-                
-                if (index < remindersArray.length()) {
-                    // Show the reminder at this index
-                    val reminder = remindersArray.getJSONObject(index)
-                    updateViewsWithReminder(views, reminder, context, widgetId)
-                } else {
-                    // No more reminders, show "Add more reminders"
-                    updateViewsWithDefault(views)
-                }
-                
-                appWidgetManager.updateAppWidget(widgetId, views)
-                Log.d("ReminderWidget", "✅ Widget $widgetId updated with reminder at index $index")
-            }
-            
-        } catch (e: Exception) {
-            Log.e("ReminderWidget", "Error parsing JSON: $e")
-            appWidgetIds.forEach { widgetId ->
-                val views = RemoteViews(context.packageName, R.layout.reminder_widget_layout)
-                updateViewsWithDefault(views)
-                appWidgetManager.updateAppWidget(widgetId, views)
-            }
+        widgetIds.forEach { widgetId ->
+            updateSingleWidget(context, manager, widgetId)
         }
     }
-    
-    private fun updateViewsWithDefault(views: RemoteViews) {
-        views.setTextViewText(R.id.title_text, "No More Reminders")
-        views.setTextViewText(R.id.note_text, "Add and pin a reminder to see it here!")
+
+   private fun updateSingleWidget(
+    context: Context,
+    manager: AppWidgetManager,
+    widgetId: Int
+) {
+    val prefs = HomeWidgetPlugin.getData(context)
+
+    // 👇 هنا التغيير
+    val reminderId = prefs.getString(
+        "widget_$widgetId",
+        prefs.getString("last_pinned_reminder_id", null)
+    )
+
+    if (reminderId != null) {
+        prefs.edit()
+            .putString("widget_$widgetId", reminderId)
+            .apply()
+    }
+
+    val views = RemoteViews(context.packageName, R.layout.reminder_widget_layout)
+
+    val json = reminderId?.let {
+        prefs.getString("widget_reminder_$it", null)
+    }
+
+    if (json == null) {
+        setDefault(views)
+        manager.updateAppWidget(widgetId, views)
+        return
+    }
+
+    val reminder = JSONObject(json)
+
+    views.setTextViewText(R.id.title_text, reminder.getString("title"))
+    views.setTextViewText(R.id.note_text, reminder.getString("note"))
+    views.setTextViewText(R.id.sticker_text, reminder.getString("sticker"))
+
+    views.setInt(
+        R.id.widget_container,
+        "setBackgroundColor",
+        reminder.getLong("backgroundColor").toInt()
+    )
+
+    views.setTextColor(
+        R.id.title_text,
+        reminder.getLong("textColor").toInt()
+    )
+
+    views.setTextColor(
+        R.id.note_text,
+        reminder.getLong("textColor").toInt()
+    )
+
+    manager.updateAppWidget(widgetId, views)
+}
+
+
+    private fun setDefault(views: RemoteViews) {
+        views.setTextViewText(R.id.title_text, "No Reminder")
+        views.setTextViewText(R.id.note_text, "Pin a reminder")
         views.setTextViewText(R.id.sticker_text, "📌")
-        views.setTextColor(R.id.title_text, Color.parseColor("#1A1A1A"))
-        views.setTextColor(R.id.note_text, Color.parseColor("#666666"))
-        views.setInt(R.id.widget_container, "setBackgroundColor", Color.parseColor("#E0E0E0"))
-    }
-    
-    private fun updateViewsWithReminder(
-        views: RemoteViews,
-        reminder: org.json.JSONObject,
-        context: Context,
-        widgetId: Int
-    ) {
-        val title = reminder.getString("title")
-        val note = reminder.getString("note")
-        val sticker = reminder.getString("sticker")
-        val bgColorString = reminder.getString("backgroundColor")
-        val textColorString = reminder.getString("textColor")
-        
-        Log.d("ReminderWidget", "  Widget $widgetId -> $sticker $title")
-        
-        // Parse colors
-        val bgColor = try {
-            bgColorString.toLong().toInt()
-        } catch (e: Exception) {
-            Color.parseColor("#FFE082")
-        }
-        
-        val textColor = try {
-            textColorString.toLong().toInt()
-        } catch (e: Exception) {
-            Color.parseColor("#1A1A1A")
-        }
-        
-        // Update views
-        views.setTextViewText(R.id.title_text, title)
-        views.setTextViewText(R.id.note_text, note)
-        views.setTextViewText(R.id.sticker_text, sticker)
-        views.setTextColor(R.id.title_text, textColor)
-        views.setTextColor(R.id.note_text, textColor)
-        views.setInt(R.id.widget_container, "setBackgroundColor", bgColor)
-    }
-
-    override fun onEnabled(context: Context) {
-        super.onEnabled(context)
-        Log.d("ReminderWidget", "🟢 First widget added")
-    }
-
-    override fun onDisabled(context: Context) {
-        super.onDisabled(context)
-        Log.d("ReminderWidget", "🔴 Last widget removed")
-    }
-
-    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
-        super.onDeleted(context, appWidgetIds)
-        Log.d("ReminderWidget", "🗑️ Widgets deleted: ${appWidgetIds.joinToString()}")
     }
 }

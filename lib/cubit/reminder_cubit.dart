@@ -21,57 +21,54 @@ class ReminderCubit extends Cubit<ReminderState> {
       final reminders = await _db.getAllReminders();
       emit(ReminderLoaded(reminders));
 
-      // Update widget whenever we load reminders
-      await _widgetService.updateAllPinnedReminders();
+      
     } catch (e) {
       emit(ReminderError(e.toString()));
     }
   }
 
-  Future<void> addReminder(ReminderModel reminder) async {
-    try {
-      await _db.insertReminder(reminder);
-      await _alarmService.scheduleReminder(reminder); 
-      //  if (reminder.isPinnedToWidget) {
-      //   await _widgetService.updateWidget(reminder);
-      // }
-      // Update widget with all pinned reminders
-      await _widgetService.updateAllPinnedReminders();
-      await loadReminders();
-    } catch (e) {
-      emit(ReminderError(e.toString()));
+ Future<void> addReminder(ReminderModel reminder) async {
+  try {
+    await _db.insertReminder(reminder);
+    await _alarmService.scheduleReminder(reminder);
+
+    if (reminder.isPinnedToWidget) {
+      await _widgetService.pinReminder(reminder);
     }
+
+    await loadReminders();
+  } catch (e) {
+    emit(ReminderError(e.toString()));
   }
+}
 
 
-    Future<void> updateReminder(ReminderModel reminder) async {
-    try {
-      await _db.updateReminder(reminder);
-      await _alarmService.cancelReminder(reminder.id);
-      if (!reminder.isCompleted) {
-        await _alarmService.scheduleReminder(reminder);
-      }
 
-      //  if (reminder.isPinnedToWidget) {
-      //   await _widgetService.updateWidget(reminder);
-      // } else {
-      //   await _widgetService.removeWidget(reminder.id);
-      // }
-        // Update widget with all pinned reminders
-      await _widgetService.updateAllPinnedReminders();
-      await loadReminders();
-    } catch (e) {
-      emit(ReminderError(e.toString()));
+Future<void> updateReminder(ReminderModel reminder) async {
+  try {
+    await _db.updateReminder(reminder);
+
+    await _alarmService.cancelReminder(reminder.id);
+    if (!reminder.isCompleted) {
+      await _alarmService.scheduleReminder(reminder);
     }
+
+    if (reminder.isPinnedToWidget) {
+      await _widgetService.updateReminderWidget(reminder);
+    }
+
+    await loadReminders();
+  } catch (e) {
+    emit(ReminderError(e.toString()));
   }
+}
+
 
   Future<void> deleteReminder(String id) async {
     try {
       await _db.deleteReminder(id);
       await _alarmService.cancelReminder(id);
-      // await _widgetService.removeWidget(id);
-      // Update widget with all pinned reminders
-      await _widgetService.updateAllPinnedReminders();
+    
       await loadReminders();
     } catch (e) {
       emit(ReminderError(e.toString()));
